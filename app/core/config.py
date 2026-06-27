@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     # --- Redis ---
     REDIS_URL: str = "redis://redis:6379/0"
 
+    # --- LLM ---
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-3.5-flash"
+
     # --- App ---
     APP_ENV: str = "development"
     LOG_LEVEL: str = "INFO"
