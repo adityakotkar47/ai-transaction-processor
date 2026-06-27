@@ -1,0 +1,26 @@
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Secrets — do NOT add .env.defaults here, it is committed intentionally
+.env
+.env.local
+
+# App runtime data (populated at runtime by the API container)
+uploads/
+
+# Logs
+*.log
+
+# OS metadata
+.DS_Store
+Thumbs.db
