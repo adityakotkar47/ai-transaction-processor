@@ -1,4 +1,4 @@
-"""Celery pipeline task: clean raw CSV and persist transactions."""
+"""Celery pipeline task: clean raw CSV, detect anomalies, persist transactions."""
 
 import logging
 import os
@@ -93,20 +93,23 @@ def process_job(self, job_id: str) -> None:
             job_id, stats["total_rows"], stats["cleaned_rows"], stats["duplicate_rows"],
         )
 
-        # Placeholder anomaly columns; anomaly detection wired next
-        cleaned_df = cleaned_df.copy()
-        cleaned_df["is_anomaly"] = False
-        cleaned_df["anomaly_reason"] = None
+        # ── Step 2: Anomaly detection ────────────────────────────────────
+        from app.services.anomaly.detector import AnomalyDetector  # noqa: PLC0415
+
+        detector = AnomalyDetector()
+        annotated_df = detector.detect(cleaned_df)
+        anomaly_count = int(annotated_df["is_anomaly"].sum())
+        logger.info("[%s] Step 2/2 Anomaly detection done: %d anomalies", job_id, anomaly_count)
 
         with get_sync_session() as session:
-            txns = [_row_to_transaction(row, jid) for _, row in cleaned_df.iterrows()]
+            txns = [_row_to_transaction(row, jid) for _, row in annotated_df.iterrows()]
             session.bulk_save_objects(txns)
 
             job = session.get(Job, jid)
             job.total_rows = stats["total_rows"]
             job.cleaned_rows = stats["cleaned_rows"]
             job.duplicate_rows = stats["duplicate_rows"]
-            job.anomaly_count = 0
+            job.anomaly_count = anomaly_count
             job.status = JobStatus.COMPLETED
             job.updated_at = datetime.utcnow()
 
